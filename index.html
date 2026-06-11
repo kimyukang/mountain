@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>山命 — 사주로 찾는 나의 산</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --g1:#0a2115;   /* 무드보드 진한 숲 그린 */
+  --g2:#1b4d2e;   /* 무드보드 미드 그린 */
+  --g3:#6b9400;   /* 무드보드 올리브 라임 그린 */
+  --g3l:#8cb800;
+  --white:rgba(255,255,255,1);
+  --glass-bg:rgba(245,240,228,0.13);
+  --glass-bg2:rgba(245,240,228,0.20);
+  --glass-border:rgba(245,240,228,0.35);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.28), inset 0 1px 0 rgba(245,240,228,0.4);
+  --text-primary:rgba(255,255,255,0.96);
+  --text-secondary:rgba(255,255,255,0.6);
+  --text-muted:rgba(255,255,255,0.38);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body {
+  font-family:'Noto Sans KR',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  background: var(--g1);
+  color: var(--text-primary);
+}
+
+/* ── 3D 산 배경 ── */
+.bg-wrap{position:fixed;inset:0;z-index:0;overflow:hidden;}
+
+/* 하늘 */
+.bg-sky{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,
+    #4a9fd4 0%,#6ab8e8 18%,#8dd0f5 34%,
+    #b8e4fc 50%,#d4f0fe 62%,
+    #e8f8d0 72%,#c8edaa 80%,
+    #7ab840 88%,#4a8a1e 94%,#2a6010 100%
+  );
+}
+
+/* 태양 글로우 */
+.bg-sun{
+  position:absolute;top:8%;right:22%;
+  width:110px;height:110px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,200,0.9) 20%,rgba(255,230,100,0.5) 55%,transparent 75%);
+  box-shadow:0 0 60px 30px rgba(255,240,120,0.25),0 0 120px 60px rgba(255,200,50,0.12);
+  filter:blur(2px);
+}
+
+/* 구름 */
+.bg-clouds{position:absolute;inset:0;pointer-events:none;}
+.cloud{position:absolute;}
+.cloud-body{
+  border-radius:50%;
+  background:radial-gradient(ellipse at 40% 35%,rgba(255,255,255,0.98) 0%,rgba(240,248,255,0.92) 60%,rgba(210,235,255,0.7) 100%);
+  box-shadow:0 6px 24px rgba(150,180,220,0.25),inset 0 -4px 12px rgba(180,210,240,0.2);
+}
+/* 구름 1 - 크고 흰 (중앙 상단) */
+.c1{top:6%;left:28%;animation:cloudDrift1 40s linear infinite;}
+.c1 .cloud-body{width:220px;height:90px;}
+.c1::before{content:'';position:absolute;width:130px;height:100px;background:inherit;border-radius:50%;top:-40px;left:35px;box-shadow:inherit;}
+.c1::after{content:'';position:absolute;width:100px;height:75px;background:inherit;border-radius:50%;top:-25px;right:30px;box-shadow:inherit;}
+
+/* 구름 2 - 중간 (우상단) */
+.c2{top:3%;right:5%;animation:cloudDrift2 55s linear infinite;}
+.c2 .cloud-body{width:160px;height:65px;}
+.c2::before{content:'';position:absolute;width:90px;height:80px;background:inherit;border-radius:50%;top:-30px;left:25px;box-shadow:inherit;}
+
+/* 구름 3 - 작고 보송 (좌측) */
+.c3{top:14%;left:2%;animation:cloudDrift1 48s linear infinite 12s;}
+.c3 .cloud-body{width:120px;height:48px;}
+.c3::before{content:'';position:absolute;width:70px;height:60px;background:inherit;border-radius:50%;top:-22px;left:18px;box-shadow:inherit;}
+
+/* 구름 4 - 중간 낮은 위치 */
+.c4{top:22%;right:30%;animation:cloudDrift2 62s linear infinite 8s;}
+.c4 .cloud-body{width:140px;height:55px;}
+.c4::before{content:'';position:absolute;width:80px;height:70px;background:inherit;border-radius:50%;top:-28px;left:22px;box-shadow:inherit;}
+.c4::after{content:'';position:absolute;width:65px;height:52px;background:inherit;border-radius:50%;top:-18px;right:18px;box-shadow:inherit;}
+
+@keyframes cloudDrift1{from{transform:translateX(-60px)}to{transform:translateX(60px)}}
+@keyframes cloudDrift2{from{transform:translateX(40px)}to{transform:translateX(-40px)}}
+
+/* ── 산 레이어 SVG ── */
+.bg-mountains-svg{
+  position:absolute;bottom:0;left:0;right:0;
+  width:100%;height:65%;
+}
+
+/* 안개 오버레이 */
+.bg-mist{
+  position:absolute;bottom:0;left:0;right:0;height:22%;
+  background:linear-gradient(180deg,transparent 0%,rgba(180,220,255,0.08) 40%,rgba(200,235,200,0.18) 100%);
+  pointer-events:none;
+}
+/* 꽃/잔디 힌트 */
+.bg-flowers{
+  position:absolute;bottom:0;left:0;right:0;height:14%;
+  background:linear-gradient(180deg,transparent 0%,rgba(50,100,20,0.45) 100%);
+  pointer-events:none;
+}
+
+/* Liquid Glass 믹스인 */
+.glass {
+  background: rgba(255,250,232,0.18);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255,248,220,0.45);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.22), inset 0 1.5px 0 rgba(255,252,240,0.7), inset 0 -1px 0 rgba(0,0,0,0.06);
+}
+.glass-dark {
+  background: rgba(10,33,21,0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.container{max-width:820px;margin:0 auto;padding:0 24px;position:relative;z-index:1;}
+
+/* 헤더 */
+header{text-align:center;padding:60px 0 40px;}
+.logo-3d {
+  width:72px;height:72px;margin:0 auto 18px;
+  position:relative;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;
+  background: linear-gradient(145deg, rgba(107,148,0,0.4), rgba(27,77,46,0.5));
+  backdrop-filter:blur(12px);
+  border:1.5px solid rgba(255,255,255,0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25), 0 0 0 8px rgba(107,148,0,0.08);
+  font-size:32px;
+  transition:transform .3s;
+}
+.logo-3d:hover{transform:scale(1.06) translateY(-2px);}
+header h1{font-family:'Noto Serif KR',serif;font-size:38px;font-weight:700;color:#fff;letter-spacing:-0.5px;}
+header h1 span{
+  background:linear-gradient(135deg,#a8d400,#6b9400);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+header p{font-size:13px;color:var(--text-secondary);margin-top:10px;letter-spacing:2.5px;font-weight:300;}
+
+/* 입력 카드 */
+.input-card {
+  border-radius:28px;
+  padding:36px;
+  margin-bottom:28px;
+}
+.sec-title{font-family:'Noto Serif KR',serif;font-size:19px;font-weight:600;color:#fff;margin-bottom:6px;}
+.sec-sub{font-size:13px;color:var(--text-secondary);margin-bottom:28px;line-height:1.7;}
+
+/* 셀렉트 */
+.fgroup{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+.fgroup label{font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:1.5px;text-transform:uppercase;}
+.sel-wrap{position:relative;}
+.sel-wrap::after{content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);color:rgba(255,248,220,0.7);font-size:11px;pointer-events:none;}
+select {
+  width:100%;
+  background: rgba(255,250,235,0.22);
+  backdrop-filter:blur(16px) saturate(160%);
+  -webkit-backdrop-filter:blur(16px) saturate(160%);
+  border: 1px solid rgba(255,248,225,0.5);
+  border-radius:14px;
+  padding:13px 16px;
+  font-size:14px;
+  font-family:'Noto Sans KR',sans-serif;
+  color:#fff;
+  appearance:none;-webkit-appearance:none;
+  outline:none;
+  transition:all .2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,252,240,0.6), inset 0 -1px 0 rgba(0,0,0,0.08);
+}
+select option{background:#1b4d2e;color:#fff;}
+select:focus{
+  border-color:rgba(255,248,220,0.75);
+  background:rgba(255,252,235,0.30);
+  box-shadow:0 0 0 3px rgba(255,240,180,0.2), 0 4px 20px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,252,240,0.7);
+}
+
+/* 성별 - 원형 라디오 */
+.gender-row{display:flex;gap:28px;margin-top:8px;}
+.gender-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:0;border:none;background:none;cursor:pointer;
+  font-size:15px;font-family:'Noto Sans KR',sans-serif;
+  color:var(--text-secondary);font-weight:500;transition:color .2s;
+}
+.gender-btn .radio-circle{
+  width:22px;height:22px;border-radius:50%;
+  border:2px solid rgba(245,240,228,0.35);
+  background:rgba(245,240,228,0.08);
+  transition:all .25s;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.gender-btn .radio-circle::after{
+  content:'';width:10px;height:10px;border-radius:50%;
+  background:transparent;transition:all .25s;
+}
+.gender-btn.sel{color:#fff;}
+.gender-btn.sel .radio-circle{border-color:#8cb800;background:rgba(107,148,0,0.15);}
+.gender-btn.sel .radio-circle::after{background:#8cb800;}
+
+/* 기운 버튼 - Liquid Glass 3D */
+.energy-label{font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;}
+.energy-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:26px;}
+.energy-btn {
+  padding:14px 6px 12px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.18);
+  background:rgba(245,240,228,0.09);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  color:var(--text-secondary);
+  font-size:12px;font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer;transition:all .25s;text-align:center;line-height:1.5;
+  box-shadow:0 4px 16px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,252,240,0.25);
+  position:relative;overflow:hidden;
+}
+.energy-btn::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,252,240,0.13) 0%,transparent 100%);
+  border-radius:18px 18px 0 0;pointer-events:none;
+}
+.energy-btn .em3d{font-size:22px;display:block;margin-bottom:6px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.4));}
+.energy-btn .em-name{font-size:12px;font-weight:600;}
+.energy-btn .em-sub{font-size:10px;opacity:.6;margin-top:2px;}
+.energy-btn:hover{
+  background:rgba(245,240,228,0.17);
+  border-color:rgba(245,240,228,0.4);
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.2);
+  color:#fff;
+}
+.energy-btn.sel {
+  background:linear-gradient(145deg,rgba(107,148,0,0.45),rgba(140,184,0,0.25));
+  border-color:rgba(140,184,0,0.6);
+  color:#fff;
+  box-shadow:0 6px 24px rgba(107,148,0,0.3),inset 0 1px 0 rgba(255,255,255,0.25);
+  transform:translateY(-1px);
+}
+
+/* 분석 버튼 */
+.btn-analyze {
+  width:100%;
+  background:linear-gradient(135deg,#6b9400,#8cb800);
+  color:#fff;
+  border:none;
+  border-radius:16px;
+  padding:17px;
+  font-size:16px;
+  font-family:'Noto Serif KR',serif;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .25s;
+  letter-spacing:.5px;
+  margin-top:4px;
+  box-shadow:0 6px 24px rgba(107,148,0,0.4),inset 0 1px 0 rgba(255,255,255,0.3);
+  position:relative;overflow:hidden;
+}
+.btn-analyze::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 100%);pointer-events:none;
+}
+.btn-analyze:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(107,148,0,0.5);}
+.btn-analyze:active{transform:translateY(0);}
+.btn-analyze:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* 로딩 */
+.loading{display:none;text-align:center;padding:56px 0;}
+.loading.show{display:block;}
+.lm-row{display:flex;justify-content:center;gap:8px;margin-bottom:22px;}
+.lm{width:7px;background:linear-gradient(to top,#1b4d2e,#6b9400);border-radius:4px 4px 0 0;animation:rise 1.2s ease-in-out infinite;}
+.lm:nth-child(1){height:20px;animation-delay:0s}.lm:nth-child(2){height:34px;animation-delay:.15s}.lm:nth-child(3){height:50px;animation-delay:.3s}.lm:nth-child(4){height:34px;animation-delay:.45s}.lm:nth-child(5){height:20px;animation-delay:.6s}
+@keyframes rise{0%,100%{opacity:.25;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.12)}}
+.loading p{font-size:14px;color:var(--text-secondary);}
+.loading-step{font-size:12px;color:#8cb800;margin-top:8px;min-height:20px;}
+
+/* 결과 */
+.result-section{display:none;}
+.result-section.show{display:block;}
+
+/* 사주 카드 */
+.saju-card {
+  border-radius:24px;padding:36px;margin-bottom:22px;
+  background:linear-gradient(135deg,rgba(27,77,46,0.7) 0%,rgba(10,33,21,0.8) 100%);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(107,148,0,0.35);
+  box-shadow:0 12px 48px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.12);
+  position:relative;overflow:hidden;
+}
+.saju-card::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border:1px solid rgba(107,148,0,0.15);border-radius:50%;pointer-events:none;}
+.saju-card::after{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,0.06) 0%,transparent 60%);pointer-events:none;border-radius:24px;}
+.saju-inner{position:relative;z-index:1;}
+.saju-label{font-size:11px;letter-spacing:2px;color:#8cb800;margin-bottom:12px;font-weight:600;}
+.saju-title{font-family:'Noto Serif KR',serif;font-size:26px;font-weight:700;color:#fff;margin-bottom:16px;}
+.pillars{display:flex;gap:10px;margin-bottom:18px;}
+.pillar{
+  background:rgba(245,240,228,0.09);
+  border:1px solid rgba(245,240,228,0.2);
+  backdrop-filter:blur(8px);
+  border-radius:14px;padding:12px 14px;text-align:center;flex:1;
+}
+.pillar-name{font-size:10px;color:#8cb800;letter-spacing:1px;margin-bottom:6px;font-weight:600;}
+.pillar-char{font-family:'Noto Serif KR',serif;font-size:22px;font-weight:600;color:#fff;}
+.pillar-sub{font-size:11px;color:var(--text-secondary);margin-top:3px;}
+.saju-desc{font-size:14px;line-height:1.85;color:rgba(255,255,255,0.82);}
+.etags{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.etag{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;backdrop-filter:blur(8px);}
+
+/* 산 카드 */
+.mt-label-row{font-family:'Noto Serif KR',serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:16px;}
+.mt-card {
+  border-radius:24px;overflow:hidden;margin-bottom:18px;
+  background:rgba(245,240,228,0.06);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(245,240,228,0.14);
+  box-shadow:0 8px 40px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,252,240,0.18);
+  transition:transform .2s,box-shadow .2s;
+}
+.mt-card:hover{transform:translateY(-3px);box-shadow:0 16px 56px rgba(0,0,0,0.45);}
+.mt-card.primary{border-color:rgba(107,148,0,0.45);box-shadow:0 8px 40px rgba(107,148,0,0.2),0 0 0 1px rgba(107,148,0,0.2);}
+.mt-head{padding:26px 26px 20px;display:flex;align-items:flex-start;gap:18px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.mt-rank{
+  width:46px;height:46px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;flex-shrink:0;
+}
+.rank-1{background:linear-gradient(145deg,#d4a820,#f0c840);color:#4a2800;box-shadow:0 4px 16px rgba(212,168,32,0.4);}
+.rank-2{background:rgba(245,240,228,0.14);color:#fff;border:1px solid rgba(245,240,228,0.25);}
+.rank-3{background:rgba(245,240,228,0.08);color:var(--text-secondary);border:1px solid rgba(245,240,228,0.16);}
+.mt-info{flex:1;}
+.mt-badge{font-size:11px;color:#8cb800;font-weight:700;letter-spacing:1px;margin-bottom:6px;}
+.mt-name{font-family:'Noto Serif KR',serif;font-size:24px;font-weight:700;color:#fff;margin-bottom:4px;}
+.mt-name-en{font-size:13px;color:var(--text-secondary);}
+.score-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.score-bar{flex:1;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+.score-fill{height:100%;background:linear-gradient(to right,#1b4d2e,#6b9400);border-radius:3px;}
+.score-num{font-size:14px;font-weight:700;color:#8cb800;min-width:36px;}
+.mt-body{padding:22px 26px;}
+.mt-reason{font-size:14px;line-height:1.85;color:rgba(255,255,255,0.75);margin-bottom:18px;padding-left:14px;border-left:3px solid rgba(107,148,0,0.6);}
+
+/* 날씨/방문객 박스 */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.stat-box{
+  background:rgba(245,240,228,0.07);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(245,240,228,0.15);
+  border-radius:16px;padding:18px;
+  box-shadow:inset 0 1px 0 rgba(255,252,240,0.18);
+}
+.stat-title{font-size:11px;color:var(--text-secondary);font-weight:600;letter-spacing:1px;margin-bottom:13px;text-transform:uppercase;}
+.weather-now{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.w-icon-big{font-size:30px;filter:drop-shadow(0 3px 8px rgba(0,0,0,0.4));}
+.w-cond{font-size:12px;color:var(--text-secondary);margin-bottom:2px;}
+.w-temps{font-size:21px;font-weight:500;line-height:1;}
+.t-hot{color:#ff8c42;}.t-cold{color:#7ab8e8;}.t-sep{font-size:13px;color:var(--text-muted);margin:0 3px;}
+.w-details{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.w-item{font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column;gap:2px;}
+.w-item strong{color:#fff;font-size:13px;font-weight:500;}
+.w-week{display:flex;justify-content:space-between;margin-top:10px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;}
+.wd{text-align:center;font-size:10px;color:var(--text-secondary);display:flex;flex-direction:column;align-items:center;gap:3px;}
+.wd.today{color:#8cb800;font-weight:700;}
+.wd-icon{font-size:14px;}
+.wd-hot{font-size:11px;color:#ff8c42;font-weight:500;}
+.wd-cold{font-size:10px;color:#7ab8e8;}
+.vc-bars{display:flex;align-items:flex-end;gap:4px;height:52px;margin-bottom:7px;}
+.vc-bar{flex:1;border-radius:3px 3px 0 0;background:rgba(107,148,0,0.3);}
+.vc-bar.today{background:linear-gradient(to top,#1b4d2e,#6b9400);}
+.vc-bar.peak{background:rgba(212,168,32,0.6);}
+.vc-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);}
+.v-summary{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid rgba(255,255,255,0.07);margin-top:8px;}
+.v-stat{font-size:12px;color:var(--text-secondary);}
+.v-stat strong{display:block;font-size:17px;font-weight:600;color:#fff;}
+.cong-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;backdrop-filter:blur(8px);}
+
+/* 트레일 정보 */
+.trail-info{padding:18px 26px 24px;border-top:1px solid rgba(255,255,255,0.07);display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.trail-stat{text-align:center;}
+.trail-icon{font-size:22px;display:block;margin-bottom:5px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4));}
+.trail-val{font-size:13px;font-weight:700;color:#fff;}
+.trail-label{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+
+/* 오행 범례 */
+.legend-card{border-radius:24px;padding:28px;margin-bottom:36px;}
+.legend-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px;}
+.legend-item{
+  border-radius:16px;padding:16px 10px;text-align:center;
+  background:rgba(245,240,228,0.07);
+  border:1px solid rgba(245,240,228,0.15);
+  backdrop-filter:blur(8px);
+  transition:transform .2s;
+}
+.legend-item:hover{transform:translateY(-2px);}
+.legend-symbol{font-size:22px;margin-bottom:8px;font-family:'Noto Serif KR',serif;font-weight:700;}
+.legend-name{font-size:12px;font-weight:600;color:#fff;}
+.legend-sub{font-size:10px;margin-top:3px;color:var(--text-secondary);}
+
+footer{text-align:center;padding:28px 0 48px;font-size:12px;color:var(--text-muted);line-height:1.9;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .5s ease both;}
+
+@media(max-width:600px){
+  .energy-row{grid-template-columns:repeat(3,1fr);}
+  .pillars{gap:6px;}.pillar-char{font-size:18px;}
+  .stats-grid{grid-template-columns:1fr;}
+  .trail-info{grid-template-columns:repeat(2,1fr);}
+  .legend-grid{grid-template-columns:repeat(3,1fr);}
+  header h1{font-size:28px;}
+  .input-card{padding:24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- 3D 산 배경 -->
+<div class="bg-wrap">
+  <div class="bg-sky"></div>
+  <div class="bg-sun"></div>
+  <div class="bg-clouds">
+    <div class="cloud c1"><div class="cloud-body"></div></div>
+    <div class="cloud c2"><div class="cloud-body"></div></div>
+    <div class="cloud c3"><div class="cloud-body"></div></div>
+    <div class="cloud c4"><div class="cloud-body"></div></div>
+  </div>
+  <!-- 3D 산 레이어 (뒤→앞) -->
+  <svg class="bg-mountains-svg" viewBox="0 0 1440 500" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- 먼 산 그라디언트 (하늘색 안개) -->
+      <linearGradient id="mfar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#9ec8e8" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#7ab0d0" stop-opacity="0.85"/>
+      </linearGradient>
+      <!-- 중간 산 -->
+      <linearGradient id="mmid" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#5a9468"/>
+        <stop offset="55%" stop-color="#3a7848"/>
+        <stop offset="100%" stop-color="#2a6035"/>
+      </linearGradient>
+      <!-- 가까운 산 -->
+      <linearGradient id="mnear" x1="0.2" y1="0" x2="0.8" y2="1">
+        <stop offset="0%" stop-color="#4aaa58"/>
+        <stop offset="40%" stop-color="#2e8a3c"/>
+        <stop offset="100%" stop-color="#1a6025"/>
+      </linearGradient>
+      <!-- 전경 -->
+      <linearGradient id="mfg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#228a30"/>
+        <stop offset="100%" stop-color="#0a4018"/>
+      </linearGradient>
+      <!-- 설산 흰 정상 -->
+      <linearGradient id="msnow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f0f8ff" stop-opacity="0.95"/>
+        <stop offset="60%" stop-color="#d8eef8" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+      </linearGradient>
+      <!-- 빛 하이라이트 -->
+      <linearGradient id="mhigh" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="rgba(255,255,200,0.18)"/>
+        <stop offset="100%" stop-color="transparent"/>
+      </linearGradient>
+      <filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter>
+      <filter id="blur4"><feGaussianBlur stdDeviation="4"/></filter>
+    </defs>
+
+    <!-- 레이어1: 최원경 산 (파란 안개) -->
+    <path d="M0,500 L0,310 C80,270 160,290 240,240 C320,200 380,210 460,175 C540,145 590,165 660,130 C730,100 790,125 860,105 C920,88 980,110 1060,95 C1140,78 1200,100 1280,115 C1360,130 1400,145 1440,138 L1440,500Z" fill="url(#mfar)" filter="url(#blur4)"/>
+
+    <!-- 레이어2: 원경 산 우측 -->
+    <path d="M600,500 L600,200 C660,165 720,180 780,145 C830,118 880,135 940,110 C1000,88 1060,105 1120,95 C1180,82 1260,100 1340,115 C1390,125 1420,118 1440,112 L1440,500Z" fill="#6a9e78" opacity="0.55" filter="url(#blur2)"/>
+
+    <!-- 레이어3: 중경 좌측 큰 산 (설산 힌트) -->
+    <path d="M0,500 L0,285 C60,260 120,275 180,240 C240,210 290,215 350,185 C400,160 440,148 490,125 C520,110 545,118 560,135 C575,145 580,155 600,170 C630,190 670,230 720,270 C760,300 800,320 860,350 C920,375 1000,390 1060,400 C1100,408 1140,412 1200,420 L1440,500 L0,500Z" fill="url(#mmid)"/>
+    <!-- 설산 흰 정상 -->
+    <path d="M470,126 C490,100 510,82 530,68 C545,57 555,60 565,72 C575,84 580,100 590,115 C570,108 555,105 540,110 C520,116 498,120 470,126Z" fill="url(#msnow)"/>
+    <!-- 빛 하이라이트 왼쪽 사면 -->
+    <path d="M0,285 C60,260 120,275 180,240 C240,210 290,215 350,185 C380,170 420,152 460,132 C440,145 400,162 350,190 C290,220 240,215 180,248 C120,280 60,268 0,295Z" fill="url(#mhigh)"/>
+
+    <!-- 레이어4: 중경 우측 산 -->
+    <path d="M800,500 L800,310 C860,280 920,295 980,260 C1030,232 1080,245 1140,218 C1190,196 1240,210 1300,225 C1360,240 1400,235 1440,228 L1440,500Z" fill="url(#mmid)" opacity="0.9"/>
+
+    <!-- 레이어5: 근경 주봉 (가장 가까운 큰 산) -->
+    <path d="M-50,500 L-50,360 C40,340 120,360 200,330 C280,302 340,310 400,285 C450,264 490,250 530,230 C560,215 580,208 600,200 C615,194 625,192 640,195 C655,198 665,205 680,215 C700,228 720,248 750,265 C790,285 840,295 900,315 C960,335 1020,355 1090,370 C1160,385 1240,388 1320,382 C1380,377 1420,370 1460,365 L1460,500Z" fill="url(#mnear)"/>
+    <!-- 근경 하이라이트 -->
+    <path d="M580,205 C595,198 610,195 628,196 C618,195 605,196 590,204 C575,212 560,225 540,238 C555,228 570,212 580,205Z" fill="rgba(255,255,200,0.3)"/>
+
+    <!-- 레이어6: 전경 언덕 -->
+    <path d="M0,500 L0,430 C100,415 220,420 340,408 C460,396 560,385 680,375 C800,365 920,368 1040,378 C1160,388 1300,402 1440,412 L1440,500Z" fill="url(#mfg)"/>
+
+    <!-- 레이어7: 최전경 어두운 초원 -->
+    <path d="M0,500 L0,470 C180,460 360,455 540,462 C720,469 900,475 1080,470 C1260,465 1380,460 1440,458 L1440,500Z" fill="#0e4018"/>
+
+    <!-- 나무 실루엣들 -->
+    <!-- 왼쪽 나무 -->
+    <rect x="85" y="388" width="5" height="38" fill="#0a3010"/>
+    <ellipse cx="88" cy="382" rx="14" ry="18" fill="#1a5a20"/>
+    <ellipse cx="88" cy="376" rx="10" ry="13" fill="#228a2a"/>
+    <rect x="145" y="375" width="4" height="45" fill="#0a3010"/>
+    <ellipse cx="147" cy="368" rx="12" ry="16" fill="#1a5a20"/>
+    <ellipse cx="147" cy="362" rx="9" ry="12" fill="#228a2a"/>
+    <!-- 오른쪽 나무들 -->
+    <rect x="1280" y="370" width="5" height="42" fill="#0a3010"/>
+    <ellipse cx="1282" cy="363" rx="15" ry="19" fill="#1a5a20"/>
+    <ellipse cx="1282" cy="356" rx="11" ry="14" fill="#228a2a"/>
+    <rect x="1340" y="378" width="4" height="36" fill="#0a3010"/>
+    <ellipse cx="1342" cy="372" rx="12" ry="16" fill="#1a5a20"/>
+    <rect x="1380" y="383" width="4" height="32" fill="#0a3010"/>
+    <ellipse cx="1382" cy="377" rx="11" ry="14" fill="#1a5a20"/>
+    <!-- 중간 나무 힌트 -->
+    <rect x="680" y="360" width="4" height="30" fill="#0a3010" opacity="0.7"/>
+    <ellipse cx="682" cy="354" rx="11" ry="14" fill="#1a5a20" opacity="0.7"/>
+
+    <!-- 꽃 힌트 (전경) -->
+    <circle cx="60" cy="468" r="4" fill="#ff9ec0" opacity="0.7"/>
+    <circle cx="180" cy="475" r="3" fill="#ffb8d0" opacity="0.6"/>
+    <circle cx="320" cy="466" r="4" fill="#c8a0ff" opacity="0.6"/>
+    <circle cx="500" cy="472" r="3" fill="#ff9ec0" opacity="0.5"/>
+    <circle cx="750" cy="470" r="4" fill="#ffe080" opacity="0.6"/>
+    <circle cx="950" cy="467" r="3" fill="#ffb8d0" opacity="0.6"/>
+    <circle cx="1150" cy="474" r="4" fill="#c8a0ff" opacity="0.5"/>
+    <circle cx="1350" cy="468" r="3" fill="#ff9ec0" opacity="0.6"/>
+  </svg>
+  <div class="bg-mist"></div>
+  <div class="bg-flowers"></div>
+</div>
+
+<div class="container">
+<header>
+  <div class="logo-3d">🏔️</div>
+  <h1>山<span>命</span></h1>
+  <p>사주로 찾는 나의 산 · 山과 命이 만나는 곳</p>
+</header>
+
+<div class="input-card glass">
+  <div class="sec-title">사주 정보 입력</div>
+  <div class="sec-sub">생년월일시를 입력하면 사주팔자를 분석하여 당신의 기운에 맞는 산을 추천해 드립니다.</div>
+
+  <div class="fgroup">
+    <label>태어난 해</label>
+    <div class="sel-wrap"><select id="birth-year"><option value="">연도 선택</option></select></div>
+  </div>
+  <div class="fgroup">
+    <label>태어난 월</label>
+    <div class="sel-wrap">
+      <select id="birth-month">
+        <option value="">월 선택</option>
+        <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+        <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+        <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+        <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+      </select>
+    </div>
+  </div>
+  <div class="fgroup">
+    <label>태어난 일</label>
+    <div class="sel-wrap"><select id="birth-day"><option value="">일 선택</option></select></div>
+  </div>
+  <div class="fgroup" style="margin-bottom:20px;">
+    <label>태어난 시간</label>
+    <div class="sel-wrap">
+      <select id="birth-hour">
+        <option value="">시간 선택</option>
+        <option value="unknown">모름</option>
+        <option value="0">23시~01시 (子時)</option><option value="1">01시~03시 (丑時)</option>
+        <option value="2">03시~05시 (寅時)</option><option value="3">05시~07시 (卯時)</option>
+        <option value="4">07시~09시 (辰時)</option><option value="5">09시~11시 (巳時)</option>
+        <option value="6">11시~13시 (午時)</option><option value="7">13시~15시 (未時)</option>
+        <option value="8">15시~17시 (申時)</option><option value="9">17시~19시 (酉時)</option>
+        <option value="10">19시~21시 (戌時)</option><option value="11">21시~23시 (亥時)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="fgroup" style="margin-bottom:22px;">
+    <label>성별</label>
+    <div class="gender-row">
+      <button type="button" class="gender-btn sel" id="btn-male"><span class="radio-circle"></span>남성</button>
+      <button type="button" class="gender-btn" id="btn-female"><span class="radio-circle"></span>여성</button>
+    </div>
+  </div>
+
+  <div style="margin-bottom:24px;">
+    <div class="energy-label">요즘 느끼는 기운 <span style="color:var(--text-muted);font-size:10px;">(선택)</span></div>
+    <div class="energy-row">
+      <button type="button" class="energy-btn" data-val="wood">
+        <span class="em3d">🌿</span><span class="em-name">목기</span><span class="em-sub">성장·생동</span>
+      </button>
+      <button type="button" class="energy-btn" data-val="fire">
+        <span class="em3d">🔥</span><span class="em-name">화기</span><span class="em-sub">열정·변화</span>
+      </button>
+      <button type="button" class="energy-btn" data-val="earth">
+        <span class="em3d">🪨</span><span class="em-name">토기</span><span class="em-sub">안정·중심</span>
+      </button>
+      <button type="button" class="energy-btn" data-val="metal">
+        <span class="em3d">⚔️</span><span class="em-name">금기</span><span class="em-sub">결단·명확</span>
+      </button>
+      <button type="button" class="energy-btn" data-val="water">
+        <span class="em3d">💧</span><span class="em-name">수기</span><span class="em-sub">지혜·유연</span>
+      </button>
+    </div>
+  </div>
+
+  <button type="button" class="btn-analyze" id="analyze-btn">🔍 사주 분석하고 산 찾기</button>
+</div>
+
+<div class="loading" id="loading">
+  <div class="lm-row"><div class="lm"></div><div class="lm"></div><div class="lm"></div><div class="lm"></div><div class="lm"></div></div>
+  <p>사주를 분석하는 중입니다...</p>
+  <div class="loading-step" id="loading-step"></div>
+</div>
+
+<div class="result-section" id="result-section">
+  <div class="saju-card">
+    <div class="saju-inner">
+      <div class="saju-label">✦ 사주팔자 분석 결과</div>
+      <div class="saju-title" id="saju-title">–</div>
+      <div class="pillars" id="saju-pillars"></div>
+      <div class="saju-desc" id="saju-desc"></div>
+      <div class="etags" id="element-tags"></div>
+    </div>
+  </div>
+  <div id="mountains-container"></div>
+  <div class="legend-card glass-dark">
+    <div class="sec-title">오행과 산의 관계</div>
+    <div class="sec-sub">사주의 다섯 가지 기운(木·火·土·金·水)은 각각 다른 지형과 에너지를 가진 산과 공명합니다.</div>
+    <div class="legend-grid">
+      <div class="legend-item"><div class="legend-symbol" style="color:#6dbf67">木</div><div class="legend-name">목 (나무)</div><div class="legend-sub">울창한 숲·계곡</div></div>
+      <div class="legend-item"><div class="legend-symbol" style="color:#ff8c42">火</div><div class="legend-name">화 (불)</div><div class="legend-sub">바위봉우리·일출</div></div>
+      <div class="legend-item"><div class="legend-symbol" style="color:#c8a86b">土</div><div class="legend-name">토 (흙)</div><div class="legend-sub">완만한 능선·고원</div></div>
+      <div class="legend-item"><div class="legend-symbol" style="color:#a8c8e8">金</div><div class="legend-name">금 (쇠)</div><div class="legend-sub">화강암·암릉·절벽</div></div>
+      <div class="legend-item"><div class="legend-symbol" style="color:#7ab8e8">水</div><div class="legend-name">수 (물)</div><div class="legend-sub">폭포·계곡·해발고지</div></div>
+    </div>
+  </div>
+</div>
+<footer>山命 · 사주로 찾는 나의 산<br><br>본 서비스는 AI가 분석한 참고용 콘텐츠입니다. 날씨 및 방문객 데이터는 실시간 예측값입니다.</footer>
+</div>
+
+<script>
+var selectedGender='male', selectedEnergy=null;
+
+// 연도/일 채우기
+(function(){
+  var ys=document.getElementById('birth-year');
+  for(var y=2026;y>=1940;y--){var o=document.createElement('option');o.value=y;o.textContent=y+'년';ys.appendChild(o);}
+  var ds=document.getElementById('birth-day');
+  for(var d=1;d<=31;d++){var o=document.createElement('option');o.value=d;o.textContent=d+'일';ds.appendChild(o);}
+})();
+
+// 성별
+document.getElementById('btn-male').addEventListener('click',function(){
+  selectedGender='male';
+  document.getElementById('btn-male').classList.add('sel');
+  document.getElementById('btn-female').classList.remove('sel');
+});
+document.getElementById('btn-female').addEventListener('click',function(){
+  selectedGender='female';
+  document.getElementById('btn-female').classList.add('sel');
+  document.getElementById('btn-male').classList.remove('sel');
+});
+
+// 기운
+document.querySelectorAll('.energy-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var val=btn.getAttribute('data-val');
+    if(selectedEnergy===val){selectedEnergy=null;btn.classList.remove('sel');}
+    else{document.querySelectorAll('.energy-btn').forEach(function(b){b.classList.remove('sel');});selectedEnergy=val;btn.classList.add('sel');}
+  });
+});
+
+// 분석
+document.getElementById('analyze-btn').addEventListener('click',analyze);
+
+// ── 데이터 ──
+var HEAVENLY=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+var EARTHLY=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+var H_ELEM=['木','木','火','火','土','土','金','金','水','水'];
+var E_ELEM=['水','土','木','木','土','火','火','土','金','金','土','水'];
+
+var MOUNTAINS={
+  wood:[
+    {name:'지리산',lat:35.337,lon:127.731,en:'Jirisan',loc:'경남·전남',height:1915,element:'木',trail:['천왕봉 코스','노고단 코스','성삼재 코스'],time:'8~10시간',dist:'25km',diff:'어려움',reason:'지리산은 조선 팔경의 으뜸으로, 울창한 원시림과 깊은 계곡이 목기(木氣)의 성장하는 에너지와 완벽하게 공명합니다. 천년의 나무들이 내뿜는 기운이 당신의 사주에 활력과 생명력을 더해줄 것입니다.',dailyBase:3200,peakBase:9500},
+    {name:'오대산',lat:37.798,lon:128.543,en:'Odaesan',loc:'강원',height:1563,element:'木',trail:['비로봉 코스','상원사 코스'],time:'5~6시간',dist:'14km',diff:'보통',reason:'오대산의 전나무 숲은 한국에서 가장 아름다운 숲길로 꼽힙니다. 목기가 강한 사주에게 이 숲의 피톤치드와 음이온은 몸과 마음의 균형을 회복시켜 줍니다.',dailyBase:1800,peakBase:6500},
+    {name:'계룡산',lat:36.342,lon:127.207,en:'Gyeryongsan',loc:'충남',height:845,element:'木',trail:['천황봉 코스','삼불봉 코스'],time:'4~5시간',dist:'12km',diff:'보통',reason:'계룡산은 풍수지리의 성지로, 목기의 정수가 집약된 곳입니다. 역동적인 기운을 원하는 분께 특히 잘 맞으며, 가을 단풍 시즌이 절정입니다.',dailyBase:2500,peakBase:7000}
+  ],
+  fire:[
+    {name:'설악산',lat:38.119,lon:128.466,en:'Seoraksan',loc:'강원',height:1708,element:'火',trail:['대청봉 코스','공룡능선','울산바위 코스'],time:'9~11시간',dist:'22km',diff:'매우 어려움',reason:'설악산의 화강암 봉우리들은 불꽃처럼 하늘을 향해 솟아오른 화기(火氣)의 산입니다. 붉게 타오르는 암석과 웅장한 바위군이 당신 사주의 열정과 창의적 에너지를 극대화시켜 줍니다.',dailyBase:5500,peakBase:18000},
+    {name:'한라산',lat:33.362,lon:126.529,en:'Hallasan',loc:'제주',height:1950,element:'火',trail:['성판악 코스','관음사 코스'],time:'9~10시간',dist:'19km',diff:'어려움',reason:'화산으로 탄생한 한라산은 대지의 불기운이 응결된 곳입니다. 현무암과 붉은 흙이 화기 사주의 에너지를 안정적으로 담아내며, 정상의 백록담은 음양의 균형을 상징합니다.',dailyBase:1200,peakBase:4500},
+    {name:'월출산',lat:34.769,lon:126.688,en:'Wolchulsan',loc:'전남',height:809,element:'火',trail:['천황봉 코스','구름다리 코스'],time:'5~6시간',dist:'13km',diff:'어려움',reason:'달이 뜨는 산 월출산은 화기와 금기가 교차하는 특별한 기운을 품고 있습니다. 기암괴석의 날카로운 실루엣이 저녁노을과 만나는 풍경은 화기 사주에게 강렬한 영감을 줍니다.',dailyBase:800,peakBase:3200}
+  ],
+  earth:[
+    {name:'소백산',lat:36.959,lon:128.484,en:'Sobaeksan',loc:'충북·경북',height:1439,element:'土',trail:['비로봉 코스','연화봉 코스','희방사 코스'],time:'6~7시간',dist:'16km',diff:'보통',reason:'소백산의 완만하고 넓게 뻗은 능선은 토기(土氣)의 포용력과 안정감을 그대로 담고 있습니다. 봄의 철쭉과 겨울 눈꽃이 아름다운 이 산은 마음을 단단하게 중심 잡아주는 힘이 있습니다.',dailyBase:1500,peakBase:5500},
+    {name:'덕유산',lat:35.841,lon:127.736,en:'Deoggyusan',loc:'전북·경남',height:1614,element:'土',trail:['향적봉 코스','삿갓재 코스'],time:'7~8시간',dist:'18km',diff:'보통',reason:'덕유산은 지덕(地德)이 충만한 산으로, 흙의 기운이 온 산을 감싸고 있습니다. 드넓은 고원 지대와 부드러운 사면이 토기 사주의 신중하고 믿음직한 성품과 공명합니다.',dailyBase:1200,peakBase:4000},
+    {name:'팔공산',lat:35.983,lon:128.683,en:'Palgongsan',loc:'대구·경북',height:1193,element:'土',trail:['동화사 코스','갓바위 코스'],time:'5~6시간',dist:'13km',diff:'보통',reason:'팔공산은 예로부터 영험한 기도처로 알려진 토기의 산입니다. 갓바위 석불이 내려다보는 능선을 걸으며 마음의 중심을 잡고 소원을 빌기에 좋은 곳입니다.',dailyBase:2000,peakBase:7500}
+  ],
+  metal:[
+    {name:'북한산',lat:37.658,lon:126.978,en:'Bukhansan',loc:'서울·경기',height:836,element:'金',trail:['백운대 코스','인수봉 코스','우이령 코스'],time:'5~6시간',dist:'12km',diff:'어려움',reason:'화강암 암릉이 병풍처럼 펼쳐진 북한산은 금기(金氣)의 결정체입니다. 백운대의 우뚝 솟은 봉우리는 결단력과 명확함을 상징하며, 금기가 강한 사주에게 도전 정신과 성취감을 선사합니다.',dailyBase:8000,peakBase:28000},
+    {name:'도봉산',lat:37.714,lon:127.021,en:'Dobongsan',loc:'서울·경기',height:740,element:'金',trail:['도봉산역 코스','포대능선 코스'],time:'4~5시간',dist:'10km',diff:'보통',reason:'도봉산의 날카로운 암릉과 정교한 바위 군상은 금기의 예리한 기운을 담고 있습니다. 포대능선의 웅장한 전망이 금기 사주의 냉철한 판단력과 분석력에 새로운 영감을 줍니다.',dailyBase:6500,peakBase:22000},
+    {name:'관악산',lat:37.441,lon:126.964,en:'Gwanaksan',loc:'서울·경기',height:632,element:'金',trail:['사당 코스','낙성대 코스'],time:'3~4시간',dist:'9km',diff:'보통',reason:'서울의 남쪽 관문인 관악산은 불기운과 쇠기운이 교차하는 독특한 산입니다. 바위 능선이 날카롭게 이어지며, 사시사철 접근성이 좋아 금기 에너지를 일상에서 충전하기에 최적입니다.',dailyBase:5000,peakBase:18000}
+  ],
+  water:[
+    {name:'태백산',lat:37.096,lon:128.917,en:'Taebaeksan',loc:'강원',height:1567,element:'水',trail:['유일사 코스','당골 코스'],time:'5~6시간',dist:'13km',diff:'보통',reason:'태백산은 한강·낙동강·오십천의 발원지로, 수기(水氣)의 근원이 되는 산입니다. 천제단이 있는 정상은 하늘과 가장 가까운 곳으로, 수기 사주의 깊은 지혜와 직관력을 일깨워 줍니다.',dailyBase:2000,peakBase:7000},
+    {name:'가리왕산',lat:37.467,lon:128.567,en:'Gariwangsan',loc:'강원',height:1561,element:'水',trail:['정선 코스','회동 코스'],time:'6~7시간',dist:'15km',diff:'보통',reason:'원시림이 우거진 가리왕산은 수기의 깊고 신비로운 기운을 간직한 산입니다. 인적이 드문 호젓한 숲길을 걸으며 내면을 응시하는 시간을 갖기에 더없이 좋은 곳입니다.',dailyBase:300,peakBase:1500},
+    {name:'두타산',lat:37.383,lon:129.050,en:'Dutasan',loc:'강원',height:1353,element:'水',trail:['무릉계곡 코스','댓재 코스'],time:'6~7시간',dist:'16km',diff:'어려움',reason:'두타산 무릉계곡의 맑고 깊은 물소리가 온 산을 채우고 있습니다. 신선이 노닐었다는 이 계곡은 수기 사주가 잃어버린 청명함과 지혜를 되찾는 데 최적의 환경을 제공합니다.',dailyBase:900,peakBase:4000}
+  ]
+};
+var ELEM_MOUNTAIN={'木':'wood','火':'fire','土':'earth','金':'metal','水':'water'};
+var ELEM_DESC={
+  '木':{title:'목기지명(木氣之命)',desc:'나무처럼 위로 성장하는 기운이 넘치는 명입니다. 창의력과 생명력이 강하며, 봄의 기운을 닮은 울창한 숲의 산이 당신의 기운을 북돋아 줄 것입니다.'},
+  '火':{title:'화기지명(火氣之命)',desc:'불꽃처럼 열정적이고 밝은 기운의 명입니다. 추진력과 카리스마가 강하며, 화강암 봉우리와 웅장한 전망을 가진 산이 당신의 에너지와 공명합니다.'},
+  '土':{title:'토기지명(土氣之命)',desc:'대지처럼 포용력 있고 안정된 기운의 명입니다. 신중함과 인내심이 강점이며, 완만한 능선과 넓은 산자락을 가진 산이 당신의 중심을 단단히 잡아줄 것입니다.'},
+  '金':{title:'금기지명(金氣之命)',desc:'쇠처럼 결단력 있고 명확한 기운의 명입니다. 분석력과 리더십이 뛰어나며, 날카로운 암릉과 화강암 봉우리를 가진 산이 당신의 예리한 감각을 일깨울 것입니다.'},
+  '水':{title:'수기지명(水氣之命)',desc:'물처럼 지혜롭고 유연한 기운의 명입니다. 깊은 통찰력과 적응력이 강하며, 맑은 계곡과 수원지가 있는 산이 당신의 지혜로운 기운을 충만하게 해줄 것입니다.'}
+};
+var ETAG_STYLES={
+  '木':'background:rgba(109,191,103,0.2);color:#9de897;border:1px solid rgba(109,191,103,0.3)',
+  '火':'background:rgba(255,140,66,0.2);color:#ffb07a;border:1px solid rgba(255,140,66,0.3)',
+  '土':'background:rgba(200,168,107,0.2);color:#dcc890;border:1px solid rgba(200,168,107,0.3)',
+  '金':'background:rgba(168,200,232,0.2);color:#c0d8f0;border:1px solid rgba(168,200,232,0.3)',
+  '水':'background:rgba(122,184,232,0.2);color:#9fcfe8;border:1px solid rgba(122,184,232,0.3)'
+};
+var WEEKDAYS=['일','월','화','수','목','금','토'];
+
+function getSaju(year,month,day,hour){
+  var yStem=((year-1864)%10+10)%10, yBranch=((year-1864+40)%12+12)%12;
+  var mOffset=(year-1900)*12+month-1, mStem=(mOffset+2)%10, mBranch=(month+1)%12;
+  var dayBase=Math.floor((year*365.25+month*30.6+day-723050))%60;
+  var dStem=((dayBase%10)+10)%10, dBranch=((dayBase%12)+12)%12;
+  var hStem=(dStem*2+hour)%10, hBranch=hour%12;
+  return{
+    year:{stem:HEAVENLY[yStem],branch:EARTHLY[yBranch],stemEl:H_ELEM[yStem],branchEl:E_ELEM[yBranch]},
+    month:{stem:HEAVENLY[mStem],branch:EARTHLY[mBranch],stemEl:H_ELEM[mStem],branchEl:E_ELEM[mBranch]},
+    day:{stem:HEAVENLY[dStem],branch:EARTHLY[dBranch],stemEl:H_ELEM[dStem],branchEl:E_ELEM[dBranch]},
+    hour:{stem:HEAVENLY[hStem],branch:EARTHLY[hBranch],stemEl:H_ELEM[hStem],branchEl:E_ELEM[hBranch]}
+  };
+}
+function getDominantElement(saju,energy){
+  var c={'木':0,'火':0,'土':0,'金':0,'水':0};
+  ['year','month','day','hour'].forEach(function(k){c[saju[k].stemEl]++;c[saju[k].branchEl]++;});
+  var comp={wood:'木',fire:'火',earth:'土',metal:'金',water:'水'};
+  if(energy&&comp[energy])c[comp[energy]]+=2;
+  return Object.entries(c).sort(function(a,b){return b[1]-a[1];})[0][0];
+}
+function getSajuSeed(saju){
+  return['year','month','day','hour'].reduce(function(a,k,i){return a+HEAVENLY.indexOf(saju[k].stem)*(i+1)*7+EARTHLY.indexOf(saju[k].branch)*(i+1)*3;},0);
+}
+function seededShuffle(arr,seed){
+  var a=arr.slice(),s=seed;
+  for(var i=a.length-1;i>0;i--){s=(s*1664525+1013904223)&0xffffffff;var j=Math.abs(s)%(i+1);var t=a[i];a[i]=a[j];a[j]=t;}
+  return a;
+}
+function wmoIcon(c){if(c===0)return'☀️';if(c<=2)return'⛅';if(c<=3)return'☁️';if(c<=48)return'🌫️';if(c<=55)return'🌦️';if(c<=65)return'🌧️';if(c<=77)return'❄️';if(c<=82)return'🌦️';return'⛈️';}
+function wmoDesc(c){if(c===0)return'맑음';if(c<=2)return'구름조금';if(c<=3)return'흐림';if(c<=48)return'안개';if(c<=55)return'이슬비';if(c<=65)return'비';if(c<=77)return'눈';if(c<=82)return'소나기';return'뇌우';}
+function getVisitorData(mt){
+  var now=new Date(),dow=now.getDay(),month=now.getMonth();
+  var sM=[0.45,0.5,0.6,1.0,1.1,1.2,0.85,0.9,1.15,1.1,0.75,0.45][month];
+  var bars=[];
+  for(var i=0;i<7;i++){
+    var d=new Date(now);d.setDate(now.getDate()+(i-3));
+    var dD=d.getDay(),dM=d.getMonth();
+    var dsM=[0.45,0.5,0.6,1.0,1.1,1.2,0.85,0.9,1.15,1.1,0.75,0.45][dM];
+    var ddM=[1.7,0.55,0.5,0.55,0.65,1.2,1.8][dD];
+    var noise=1+(Math.sin(mt.dailyBase+i*137)*0.08);
+    bars.push({label:['3일전','2일전','어제','오늘','내일','모레','3일후'][i],raw:Math.round(mt.dailyBase*dsM*ddM*noise),isToday:i===3});
+  }
+  var mx=Math.max.apply(null,bars.map(function(b){return b.raw;}));
+  var today=bars[3].raw,tomorrow=bars[4].raw,ratio=today/mt.peakBase;
+  var cong,cc;
+  if(ratio<0.2){cong='한산';cc='background:rgba(109,191,103,0.2);color:#9de897;border:1px solid rgba(109,191,103,0.3)';}
+  else if(ratio<0.45){cong='여유';cc='background:rgba(107,148,0,0.25);color:#b8e040;border:1px solid rgba(107,148,0,0.4)';}
+  else if(ratio<0.7){cong='보통';cc='background:rgba(255,193,7,0.2);color:#ffd54f;border:1px solid rgba(255,193,7,0.3)';}
+  else if(ratio<0.88){cong='혼잡';cc='background:rgba(255,140,66,0.2);color:#ffb07a;border:1px solid rgba(255,140,66,0.3)';}
+  else{cong='매우혼잡';cc='background:rgba(229,57,53,0.2);color:#ff8a80;border:1px solid rgba(229,57,53,0.3)';}
+  return{bars:bars.map(function(b){return Object.assign({},b,{pct:Math.round(b.raw/mx*100)});}),today:today,tomorrow:tomorrow,cong:cong,cc:cc};
+}
+async function fetchWeather(mt){
+  try{
+    var url='https://api.open-meteo.com/v1/forecast?latitude='+mt.lat+'&longitude='+mt.lon+'&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max,weathercode&timezone=Asia%2FSeoul&forecast_days=7';
+    var res=await fetch(url);var data=await res.json();var d=data.daily;
+    var now=new Date(),todayStr=now.toISOString().slice(0,10);
+    var ti=d.time.indexOf(todayStr);if(ti<0)ti=0;
+    var week=d.time.map(function(t,i){var dd=new Date(t+'T00:00:00');return{day:WEEKDAYS[dd.getDay()],icon:wmoIcon(d.weathercode[i]),tmax:Math.round(d.temperature_2m_max[i]),tmin:Math.round(d.temperature_2m_min[i]),today:t===todayStr};});
+    return{tmax:Math.round(d.temperature_2m_max[ti]),tmin:Math.round(d.temperature_2m_min[ti]),cond:wmoDesc(d.weathercode[ti]),icon:wmoIcon(d.weathercode[ti]),rain:d.precipitation_probability_max[ti],wind:Math.round(d.windspeed_10m_max[ti]/3.6*10)/10,week:week};
+  }catch(e){
+    var now=new Date();
+    return{tmax:20,tmin:12,cond:'정보없음',icon:'⛅',rain:20,wind:3,
+      week:Array.from({length:7},function(_,i){var dd=new Date();dd.setDate(dd.getDate()+i-3);return{day:WEEKDAYS[dd.getDay()],icon:'⛅',tmax:20,tmin:12,today:i===3};})};
+  }
+}
+
+// 3D 아이콘 맵
+var MT_ICONS={지리산:'🌲',오대산:'🌳',계룡산:'🐉',설악산:'🏔️',한라산:'🌋',월출산:'🌙',소백산:'🌸',덕유산:'⛰️',팔공산:'🙏',북한산:'🗻',도봉산:'🪨',관악산:'🦅',태백산:'🌠',가리왕산:'🌿',두타산:'💧'};
+
+function renderMountainCard(mt,rank,weather){
+  var score=[94,87,81][rank];
+  var v=getVisitorData(mt);
+  var isPrimary=rank===0;
+  var icon=MT_ICONS[mt.name]||'⛰️';
+  var html='<div class="mt-card '+(isPrimary?'primary':'')+' fade-in" style="animation-delay:'+(rank*0.12)+'s">';
+  // 헤더
+  html+='<div class="mt-head">';
+  html+='<div class="mt-rank rank-'+(rank+1)+'">'+(rank===0?'最':rank===1?'二':'三')+'</div>';
+  html+='<div class="mt-info">';
+  if(isPrimary)html+='<div class="mt-badge">✦ 최고 궁합의 산</div>';
+  html+='<div class="mt-name"><span style="margin-right:8px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5))">'+icon+'</span>'+mt.name+' <span style="font-size:15px;color:#8cb800">'+mt.element+'</span></div>';
+  html+='<div class="mt-name-en">'+mt.en+' · '+mt.loc+' · '+mt.height.toLocaleString()+'m</div>';
+  html+='<div class="score-row"><div class="score-bar"><div class="score-fill" style="width:'+score+'%"></div></div><div class="score-num">'+score+'%</div></div>';
+  html+='</div></div>';
+  // 바디
+  html+='<div class="mt-body"><div class="mt-reason">'+mt.reason+'</div>';
+  html+='<div class="stats-grid">';
+  // 날씨
+  html+='<div class="stat-box"><div class="stat-title">🌤 이번 주 날씨</div>';
+  html+='<div class="weather-now"><span class="w-icon-big">'+weather.icon+'</span><div><div class="w-cond">'+weather.cond+'</div>';
+  html+='<div class="w-temps"><span class="t-hot">'+weather.tmax+'°</span><span class="t-sep">/</span><span class="t-cold">'+weather.tmin+'°</span><span style="font-size:11px;color:var(--text-muted)">C</span></div></div></div>';
+  html+='<div class="w-details"><div class="w-item"><span>강수확률</span><strong>'+weather.rain+'%</strong></div><div class="w-item"><span>풍속</span><strong>'+weather.wind+'m/s</strong></div></div>';
+  html+='<div class="w-week">';
+  weather.week.forEach(function(wd){html+='<div class="wd'+(wd.today?' today':'')+'"><span>'+wd.day+'</span><span class="wd-icon">'+wd.icon+'</span><span class="wd-hot">'+wd.tmax+'°</span><span class="wd-cold">'+wd.tmin+'°</span></div>';});
+  html+='</div></div>';
+  // 방문객
+  html+='<div class="stat-box"><div class="stat-title">👥 방문객 예측</div>';
+  html+='<div class="vc-bars">';
+  v.bars.forEach(function(b){html+='<div class="vc-bar'+(b.isToday?' today':b.pct>85?' peak':'')+'" style="height:'+Math.max(b.pct,6)+'%" title="'+b.label+': 약 '+b.raw.toLocaleString()+'명"></div>';});
+  html+='</div><div class="vc-labels">';
+  v.bars.forEach(function(b){html+='<span>'+b.label+'</span>';});
+  html+='</div><div class="v-summary"><div class="v-stat"><strong>~'+v.today.toLocaleString()+'</strong>오늘</div><div class="v-stat"><strong>~'+v.tomorrow.toLocaleString()+'</strong>내일</div>';
+  html+='<span class="cong-badge" style="'+v.cc+'">'+v.cong+'</span></div></div></div></div>';
+  // 트레일
+  html+='<div class="trail-info">';
+  var ticons=['🥾','📏','⚡','🗺️'],tvals=[mt.time,mt.dist,mt.diff,mt.trail.length+'개'],tlabels=['소요시간','총 거리','난이도','추천 코스'];
+  for(var i=0;i<4;i++)html+='<div class="trail-stat"><span class="trail-icon">'+ticons[i]+'</span><div class="trail-val">'+tvals[i]+'</div><div class="trail-label">'+tlabels[i]+'</div></div>';
+  html+='</div></div>';
+  return html;
+}
+
+async function analyze(){
+  var year=parseInt(document.getElementById('birth-year').value);
+  var month=parseInt(document.getElementById('birth-month').value);
+  var day=parseInt(document.getElementById('birth-day').value);
+  var hourVal=document.getElementById('birth-hour').value;
+  if(!year||!month||!day||!hourVal){alert('생년월일시를 모두 입력해주세요.\n(시간을 모르시면 "모름"을 선택해주세요)');return;}
+  var hour=hourVal==='unknown'?Math.floor(Math.random()*12):parseInt(hourVal);
+  var btn=document.getElementById('analyze-btn');
+  btn.disabled=true;
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('result-section').classList.remove('show');
+  var steps=['생년월일 간지 변환 중...','사주팔자 오행 분석 중...','나의 산 탐색 중...','실시간 날씨 수집 중...'];
+  var si=0,stepEl=document.getElementById('loading-step');
+  var iv=setInterval(function(){if(si<steps.length)stepEl.textContent=steps[si++];},200);
+  await new Promise(function(r){setTimeout(r,300);});
+  var saju=getSaju(year,month,day,hour);
+  var dominant=getDominantElement(saju,selectedEnergy);
+  var mts=seededShuffle(MOUNTAINS[ELEM_MOUNTAIN[dominant]]||MOUNTAINS.water,getSajuSeed(saju));
+  var info=ELEM_DESC[dominant];
+  // 사주 카드
+  document.getElementById('saju-title').textContent=info.title;
+  var ph='';['year','month','day','hour'].forEach(function(k,i){ph+='<div class="pillar"><div class="pillar-name">'+['연주','월주','일주','시주'][i]+'</div><div class="pillar-char">'+saju[k].stem+saju[k].branch+'</div><div class="pillar-sub">'+saju[k].stemEl+'·'+saju[k].branchEl+'</div></div>';});
+  document.getElementById('saju-pillars').innerHTML=ph;
+  document.getElementById('saju-desc').textContent=info.desc;
+  var c={'木':0,'火':0,'土':0,'金':0,'水':0};
+  ['year','month','day','hour'].forEach(function(k){c[saju[k].stemEl]++;c[saju[k].branchEl]++;});
+  var th='';['木','火','土','金','水'].forEach(function(e){if(c[e]>0)th+='<span class="etag" style="'+ETAG_STYLES[e]+'">'+e+' '+c[e]+'</span>';});
+  document.getElementById('element-tags').innerHTML=th;
+  // 날씨
+  stepEl.textContent='실시간 날씨 수집 중...';
+  var weatherData=await Promise.all(mts.map(function(mt){return fetchWeather(mt);}));
+  clearInterval(iv);
+  // 산 카드
+  var mh='<div class="mt-label-row">추천 산 <span style="color:#8cb800">TOP 3</span></div>';
+  mts.forEach(function(mt,i){mh+=renderMountainCard(mt,i,weatherData[i]);});
+  document.getElementById('mountains-container').innerHTML=mh;
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('result-section').classList.add('show');
+  btn.disabled=false;
+  document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>
